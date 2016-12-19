@@ -74,8 +74,11 @@ sleep 2
 rm ~/$_out >& /dev/null
 touch $_out
 mstr=$(sudo salt-call --local grains.get salt_master)
+lic=$(sudo salt-call --local grains.get id)
 printf "%s\nConfigured Salt masters:\n $mstr%s\n"
+printf "%s\nConfigured Salt ID:\n $lic%s\n"
 printf "%s\nSalt Masters\n $mstr %s\n"  >> ~/$_out 2>&1
+printf "%s\nSalt ID\n $lic %s\n"  >> ~/$_out 2>&1
 egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
     do
     printf "%s\nTesting Connectivity to: [$srv]%s"
