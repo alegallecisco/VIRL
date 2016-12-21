@@ -1,4 +1,14 @@
 #!/bin/bash
+
+## This script is meant for simple information gathering
+## of your VIRL server. It also will assist with configuring
+## a static IP address. Using UWM for system configuration
+## is the recommended method and should always be used when
+## making system changes.
+##
+## Created by: alejandro gallego (alegalle@cisco.com)
+## Last Updated: Dec 12, 2016
+
 trap int_exit INT
 
 function int_exit
@@ -76,16 +86,21 @@ function _opnstk-restrt
 
 function _verchk
 {
-	echo ">>>Openstack Installed Versions<<<"
-	dpkg -l nova-common neutron-common
-	nova --version
-	keystone-all --version
-	echo ""
-	echo ">>>>VIRL Versions<<<<"
-	sudo salt-minion --versions
-	sudo virl_uwm_client version
-	sudo salt-call --local grains.get virl_release
-	echo ""
+echo ">>>Openstack Installed Versions<<<"
+dpkg -l nova-common neutron-common
+printf "%s\nNova Version: %s\n"
+nova --version
+printf "%s\nKeystone Version: %s\n"
+keystone-all --version
+echo ""
+echo ">>>>VIRL Versions<<<<"
+printf "%s\nMinion Ver: %s\n"
+sudo salt-minion --versions
+printf "%s\nUWM Client Ver: %s\n"
+sudo virl_uwm_client version
+printf "%s\nVIRL Release: %s\n"
+sudo salt-call --local grains.get virl_release
+echo ""
 }
 
 function _sltimgchk
@@ -268,13 +283,21 @@ function _setstatic
         #press_enter
 }
 
+function _addstatic
+{
+#state.sls virl.vinstall
+#vinstall salt
+#vinstall rehost
+echo ""
+}
+
 ## .--------------------------------. ##
 ## | IP Address config section END  | ##
 ## .--------------------------------. ##
 
 function _rstr-vini
 {
-cat <<-EOF
+cat <<EOF
     You are about to reset your VIRL server to default state.
     All settings, including license information will be removed.
     No files or topologies will be deleted, only operational
@@ -318,8 +341,6 @@ until [ "$selection" = "0" ]; do
 		4 ) _sltimgchk ; press_enter ;;
 		5 ) _verchk ; press_enter ;;
 		6 ) _opnstk-agnt ; press_enter ;;
-	##	7 ) -- ; press_enter;;
-	##	8 ) -- ; press_enter ;;
 		9 ) _askstatic ; press_enter ;;
 		9.1 ) _rstr-vini ; press_enter ;;
 		0 ) clear ; exit 0 ;;
@@ -331,7 +352,7 @@ done
 clear
 
 if [[ $(id) =~ ^uid=0 ]]; then
-	cat <<-EOF
+	cat << EOF
 
 	Don't run this as root (e.g. with "sudo"). If the script needs to make
 	changes as root, you will be prompted for your password!
@@ -339,6 +360,7 @@ if [[ $(id) =~ ^uid=0 ]]; then
 EOF
 exit 0
 fi
+
 
 _out=~/SrvValTest.txt
 menu
