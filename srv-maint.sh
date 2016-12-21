@@ -29,6 +29,14 @@ function _resp
 	done
 }
 
+function press_enter
+{
+	echo ""
+	echo -n "Press enter to continue"
+	read
+	clear
+}
+
 function _svc
 {
 for x in mysql keystone glance-api nova-api neutron-server
@@ -42,84 +50,28 @@ done
 
 function _opnstk-agnt
 {
-printf "%s\nNetwork Agent%s\n"
+printf "%s\nNeutron Agent%s\n"
 for n in agent-list net-list
 do
 	neutron $n
 done
-#
-printf "%s\nServer Agents%s\n"
+
+printf "%s\nKeystone Agents%s\n"
 for s in endpoint-list service-list
 do
 	keystone $s
 done
-}
 
-function _netinfo
-{
-	printf "%s\nIP Address (mgmt): %s\n"
-	ifconfig eth0
-	printf "%s\nRoute Table: %s\n"
-	route -n
-	printf "%s\nSystem Interfaces: %s\n"
-	cat /sys/class/net
-}
-
-function _saltst
-{
-_out=SaltSrvrTest.txt
-printf "%s\nResults printed to file \"$_out\" in
-    \"virl user's home directory\"%s\n"
-sleep 2
-rm ~/$_out >& /dev/null
-touch $_out
-mstr=$(sudo salt-call --local grains.get salt_master)
-lic=$(sudo salt-call --local grains.get id)
-printf "%s\nConfigured Salt masters:\n $mstr%s\n"
-printf "%s\nConfigured Salt ID:\n $lic%s\n"
-printf "%s\nSalt Masters\n $mstr %s\n"  >> ~/$_out 2>&1
-printf "%s\nSalt ID\n $lic %s\n"  >> ~/$_out 2>&1
-egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
-    do
-    idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
-    printf "%s\nTesting Connectivity to: [$srv $idig]%s"
-    printf "%s\n>>>> $srv :: $idig\n" >> ~/$_out 2>&1 && nc -zv $srv 4505-4506 >> ~/$_out 2>&1
-    echo ""
-    printf "%s\nChecking License....%s"
-    printf "%s\nAuth test --> Salt Server [$srv]%s\n"
-    printf "%s\n>>>> $srv\n" >> ~/$_out 2>&1 && sudo salt-call --master $srv -l debug test.ping >> ~/$_out 2>&1
-    done
-
-printf "%s\nChecking hostname and network interfaces: %s\n"
-sleep 5
-    for h in /etc/hostname /etc/hosts /etc/network/interfaces
-    do
-        printf "%s\n>>> $h <<<%s\n" >> ~/$_out 2>&1
-        cat $h >> ~/$_out
-    done
-sleep 5
-printf "%s\nResults printed to file \"$_out\" located in
-\"virl user's home directory\" Path is \"/home/virl\"%s\n"
-sleep 5
-}
-
-function press_enter
-{
-	echo ""
-	echo -n "Press enter to continue"
-	read
-	clear
-}
-
-function _ntrnagnt
-{
-	neutron agent-list
-	neutron net-list
+printf "%s\nNova Agents%s\n"
+for n in endpoints service-list
+do
+    nova $n
+done
 }
 
 function _opnstk-restrt
 {
-	sudo salt-call state.sls openstack-restart
+	sudo salt-call -l debug state.sls openstack-restart
 }
 
 function _verchk
@@ -154,17 +106,80 @@ egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | whil
 rm /tmp/img_*.txt
 }
 
-function _confchk
+function _result
 {
-	printf "%s\nChecking hostname and network interfaces: %s\n"
+# _out=~/SrvValTest.txt
+clear
+printf "%s\nResults printed to file \"$_out\" in
+    \"virl user's home directory\"%s\n"
+sleep 2
+rm $_out >& /dev/null
+touch $_out
+_netint
+}
 
+function _netint
+{
+# _out=~/SrvValTest.txt
+ifquery --list | egrep -v lo | sort | while read intf
+do
+ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+    printf "%s\n$intf CONNECTED\n"
+    printf "%s\n$intf CONNECTED\n" >> $_out 2>&1
+    sudo ethtool $intf | grep 'Link detected: yes' > /dev/null
+        if [ $? -ne 0 ] ; then
+        printf ">>>>%sInterface $intf DOWN%s\n"
+        printf ">>>>%sInterface $intf DOWN%s\n" >> $_out 2>&1
+        else
+        printf "IP: $ipadr\n"
+        printf "IP: $ipadr\n" >> $_out 2>&1
+        fi
+done
+vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\binternalnet_' /etc/virl.ini)
+printf "%s\n>>> VIRL Config Summary <<<\n$vini" >> $_out 2>&1
+_saltst
+}
+
+function _saltst
+{
+# _out=SrvValTest.txt
+printf "%s\nCheckin Salt Configuration...%s\n"
+sleep 1
+# rm ~/$_out >& /dev/null
+# touch ~/$_out
+mstr=$(sudo salt-call --local grains.get salt_master)
+lic=$(sudo salt-call --local grains.get id)
+printf "%s\nConfigured Salt masters:\n $mstr%s\n"
+printf "%s\nConfigured Salt ID:\n $lic%s\n"
+printf "%s\n\nSalt Masters\n $mstr %s\n"  >> $_out 2>&1
+printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
+egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
+    do
+    idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+    printf "%s\nTesting Connectivity to: [$srv $idig]%s"
+    printf "%s\n>>>> $srv :: $idig\n" >> $_out 2>&1 && nc -zv $srv 4505-4506 >> $_out 2>&1
+    echo ""
+    printf "%s\nChecking License....%s"
+    printf "%s\nAuth test --> Salt Server [$srv]%s\n"
+    printf "%s\n>>>> $srv\n" >> $_out 2>&1 && sudo salt-call --master $srv -l debug test.ping >> $_out 2>&1
+    done
+
+printf "%s\nChecking hostname and network interfaces: %s\n"
+sleep 2
     for h in /etc/hostname /etc/hosts /etc/network/interfaces
     do
-        printf "%s\n>>> $h <<<%s\n"
-        cat $h
+        printf "%s\n>>> $h <<<%s\n" >> $_out 2>&1
+        cat $h >> $_out
     done
-_netinfo
+sleep 2
+printf "%s\nResults printed to file \"$_out\" located in
+\"virl user's home directory\" Path is \"/home/virl\"%s\n"
+sleep 5
 }
+
+## .--------------------------------. ##
+## |IP Address config section START | ##
+## .--------------------------------. ##
 
 function _askstatic
 {
@@ -229,13 +244,13 @@ function _setstatic
         echo "Netmask set...      $msk"
         else
         echo "No Change... skipping!"
-    fi  
+    fi
     if [[ ! -z $gw ]]; then
         sudo crudini --set /etc/virl.ini DEFAULT public_gateway $gw
         echo "Gateway set...      $gw"
         else
         echo "No Change... skipping!"
-    fi  
+    fi
     if [[ ! -z $dns1 ]]; then
         sudo crudini --set --existing /etc/virl.ini DEFAULT first_nameserver $dns1
         echo "Name servers set...
@@ -253,10 +268,27 @@ function _setstatic
         #press_enter
 }
 
-function _healtchk
+## .--------------------------------. ##
+## | IP Address config section END  | ##
+## .--------------------------------. ##
+
+function _rstr-vini
 {
-    sudo virl_health_status >> ~/my-server-status.log
+cat <<-EOF
+    You are about to reset your VIRL server to default state.
+    All settings, including license information will be removed.
+    No files or topologies will be deleted, only operational
+    settings are restored. If you do not have DHCP server
+    available, you will have to use the console to manage your
+    VIRL server!!!
+EOF
+#_cont
+if [ $? -ne 1 ] ; then
+tstmp=$(date +%R_%m%d%Y)
+    cp /etc/virl.ini /etc/$tstmp.virl.ini && cp /etc/orig.virl.ini /etc/virl.ini
+fi
 }
+
 
 function menu
 {
@@ -264,38 +296,40 @@ selection=
 until [ "$selection" = "0" ]; do
 	echo ""
 	echo "***** Server Inspector ******"
-	echo "1 - Salt server connectivity"
-	echo "2 - Openstack Services check"
+	echo "1 - VIRL Server Config Validation"
+	echo "2 - Openstack Services Check"
 	echo "3 - Restart Openstack Services"
-	echo "4 - Test Image Availability"
-	echo "5 - Config Check"
-	echo "6 - Version Check"
-	echo "7 - Openstack Agents"
-	echo "8 - VIRL Server Health check"
+	echo "4 - Check Image Version Sync"
+	echo "5 - List Package Versions"
+	echo "6 - Check Running Openstack Agents"
+##	echo "7 - "
+##	echo "8 - "
 	echo "9 - Set Static IP address"
-	echo ""
-	echo "0 - exit program"
+	echo "9.1 - Reset Default Settings"
+	echo "0 - Exit"
 	echo ""
 	echo -n "Enter selection: "
 	read selection
 	echo ""
 	case $selection in
-		1 ) _saltst ; press_enter ;;
+		1 ) _result ; press_enter ;;
 		2 ) _svc ; press_enter ;;
-		3 ) _ntrnagnt ; press_enter ;;
+		3 ) _opnstk-restrt ; press_enter ;;
 		4 ) _sltimgchk ; press_enter ;;
-		5 ) _confchk ; press_enter ;;
-		6 ) _verchk ; press_enter ;;
-		7 ) _opnstk-agnt ; press_enter ;;
-		8 ) _healtchk ; press_enter ;;
+		5 ) _verchk ; press_enter ;;
+		6 ) _opnstk-agnt ; press_enter ;;
+	##	7 ) -- ; press_enter;;
+	##	8 ) -- ; press_enter ;;
 		9 ) _askstatic ; press_enter ;;
-		0 ) clear ; exit ;;
+		9.1 ) _rstr-vini ; press_enter ;;
+		0 ) clear ; exit 0 ;;
 		* ) echo "Please select from the menu" ; press_enter ;;
 	esac
 done
 }
 
 clear
+
 if [[ $(id) =~ ^uid=0 ]]; then
 	cat <<-EOF
 
@@ -306,7 +340,9 @@ EOF
 exit 0
 fi
 
+_out=~/SrvValTest.txt
 menu
 
 
 # awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}'
+
