@@ -88,7 +88,7 @@ function _opnstk-restrt
 function _verchk
 {
 echo ">>>Openstack Installed Versions<<<"
-dpkg -l nova-common neutron-common
+printf "%s\nNova Common: $(dpkg-query -s nova-common | grep Version)\n%sNeutron Common: $(dpkg-query -s neutron-common | grep Version)\n\n"
 printf "%s\nNova Version: %s\n"
 nova --version
 printf "%s\nKeystone Version: %s\n"
