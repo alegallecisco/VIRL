@@ -1,0 +1,24 @@
+#!/bin/bash
+
+# echo ""
+cat <<EOF
+
+    ******  Welcome to VIRL Server!  ******
+    Log into your VIRL server using the
+    first IP address listed below.
+
+    UWM URL:
+    http://a.a.a.a:19400
+
+EOF
+
+ifquery --list | egrep -v lo | sort | while read intf
+do
+ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+    sudo ethtool $intf | grep 'Link detected: yes' > /dev/null
+        if [ $? -ne 0 ] ; then
+        printf ">>>>%sInterface $intf DOWN%s\n"
+        else
+        printf "%s    $intf: $ipadr\n"
+        fi
+done

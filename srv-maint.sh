@@ -7,7 +7,8 @@
 ## making system changes.
 ##
 ## Created by: alejandro gallego (alegalle@cisco.com)
-## Last Updated: Dec 12, 2016
+## Last Updated: Dec 22, 2016
+##
 
 trap int_exit INT
 
@@ -20,7 +21,7 @@ function int_exit
 function _cont
 {
 	echo ""
-	echo -n "Continue? (y/n)"
+	echo -n "Continue? (y/n) "
 	read _resp
 }
 
@@ -29,11 +30,11 @@ function _resp
 	#echo ""
 	#echo -n "Continue? (y/n) "
 	#read _resp
-	#_resp= $_resp
+	_resp=r
 	until [ $_resp == "y" ]; do
     		case $_resp in
         	y ) _resp=y ;;
-            n ) exit 0 ;;
+            n ) clear ; menu ;;
             * ) printf "%s\nPlease enter a \"y\" or \"n\"%s\n" ; _cont ;;
         	esac
 	done
@@ -171,12 +172,16 @@ printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
 egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
     do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+    if [ $? -ne 1 ] ; then
     printf "%s\nTesting Connectivity to: [$srv $idig]%s"
     printf "%s\n>>>> $srv :: $idig\n" >> $_out 2>&1 && nc -zv $srv 4505-4506 >> $_out 2>&1
     echo ""
     printf "%s\nChecking License....%s"
     printf "%s\nAuth test --> Salt Server [$srv]%s\n"
     printf "%s\n>>>> $srv\n" >> $_out 2>&1 && sudo salt-call --master $srv -l debug test.ping >> $_out 2>&1
+    else
+    printf "%s\nUnable to resolve $srv Please check your connection.%s\n"
+    fi
     done
 
 printf "%s\nChecking hostname and network interfaces: %s\n"
@@ -199,18 +204,26 @@ sleep 5
 function _askstatic
 {
 clear
-_adns=x
+_adns=0
 while true; do
+    cat <<EOF
+
+    ******************* CAUTION *******************
+     There is no syntax validation here. Take care
+     when entering network information.
+    ******************* CAUTION *******************
+
+EOF
     read -p "Enter static IP: " ip
     read -p "Enter network ID: (ex. 172.16.1.0 for a /24 network) " ntid
-    read -p "Enter netmask: " msk
+    read -p "Enter netmask: (dotted format) " msk
     read -p "Enter default gateway: " gw
-    until [ $_adns == "y" ]; do
+    until [ $_adns = y ]; do
         read -p "Specify custom DNS servers: (optional) \"y or n\" " _adns
     	case $_adns in
         	[Yy] ) _adns=y ; _askdns ;;
             [xn] ) break ;;
-            * ) printf "%s\nPlease enter a \"y\" or \"n\"%s\n" ;;
+            [*] ) printf "%s\nPlease enter a \"y\" or \"n\"%s\n" ;;
         esac
     done
     echo "Please double check your network information:
@@ -233,35 +246,35 @@ done
 
 function _askdns
 {
-    read -p "Primary DNS server:" dns1
-    read -p "Secondary DNS server:" dns2
+    read -p "Primary DNS server: " dns1
+    read -p "Secondary DNS server: " dns2
 }
 
 function _setstatic
 {
     sudo cp /etc/virl.ini /etc/virl.ini.orig
     printf "%s\nSetting network information, please wait...!%s\n"
-        sudo crudini --set /etc/virl.ini DEFAULT using_dhcp_on_the_public_port False
+        sudo crudini --set --existing /etc/virl.ini DEFAULT using_dhcp_on_the_public_port False
     if [[ ! -z  $ip ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT Static_IP $ip
+        sudo crudini --set --existing /etc/virl.ini DEFAULT Static_IP $ip
         echo "Static IP set...    $ip"
         else
         echo "No Change... skipping!"
     fi
     if [[ ! -z $ntid ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT public_network $ntid
+        sudo crudini --set --existing /etc/virl.ini DEFAULT public_network $ntid
         echo "Network ID set...   $ntid"
         else
         echo "No Change... skipping!"
     fi
     if [[ ! -z $msk ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT public_netmask $msk
+        sudo crudini --set --existing /etc/virl.ini DEFAULT public_netmask $msk
         echo "Netmask set...      $msk"
         else
         echo "No Change... skipping!"
     fi
     if [[ ! -z $gw ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT public_gateway $gw
+        sudo crudini --set --existing /etc/virl.ini DEFAULT public_gateway $gw
         echo "Gateway set...      $gw"
         else
         echo "No Change... skipping!"
@@ -281,14 +294,45 @@ function _setstatic
         echo "No Change Sec DNS2... skipping!"
     fi
         #press_enter
+echo ""
+echo "You MUST run \"Commit\" (Opt. 9) to finalize settings"
 }
 
-function _addstatic
+function _commit
 {
-#state.sls virl.vinstall
-#vinstall salt
-#vinstall rehost
-echo ""
+cat <<EOF
+
+   +---------------------------------+
+   |  ********** WARNING **********  |
+   | YOU CANNOT STOP THIS PROCESS!   |
+   | Once the reset has started wait |
+   | for reboot message.             |
+   | If you cancel or close your     |
+   | terminal application once the   |
+   | process has started,you may     |
+   | have to re-deploy your VIRL     |
+   | Server from OVA or ISO file.    |
+   +---------------------------------+
+
+   You are about to apply new system
+   settings. Applying settings can
+   take about 15 min. to complete.
+
+   You MUST reboot when prompted!
+
+EOF
+_resp
+if [ $? -ne 1 ] ; then
+    tstmp=$(date +%R_%m%d%Y)
+    sudo touch /var/local/virl/rehost.log
+    sudo mv /var/local/virl/rehost.log /var/local/virl/$tstmp-rehost.log
+    sudo salt-call -l debug state.sls virl.vinstall
+##    sudo vinstall salt
+    sudo vinstall rehost
+    else
+    menu
+fi
+
 }
 
 ## .--------------------------------. ##
@@ -303,13 +347,38 @@ cat <<EOF
     No files or topologies will be deleted, only operational
     settings are restored. If you do not have DHCP server
     available, you will have to use the console to manage your
-    VIRL server!!!
+    VIRL server!
+
+   +---------------------------------+
+   |  ********** WARNING **********  |
+   | YOU CANNOT STOP THIS PROCESS!   |
+   | Once the reset has started wait |
+   | for reboot message.             |
+   | If you cancel or close your     |
+   | terminal application once the   |
+   | process has started,you may     |
+   | have to re-deploy your VIRL     |
+   | Server from OVA or ISO file.    |
+   +---------------------------------+
 EOF
-#_cont
+_resp
+
 if [ $? -ne 1 ] ; then
 tstmp=$(date +%R_%m%d%Y)
-    cp /etc/virl.ini /etc/$tstmp.virl.ini && cp /etc/orig.virl.ini /etc/virl.ini
+    sudo cp /etc/virl.ini /etc/$tstmp.virl.ini && cp /etc/orig.virl.ini /etc/virl.ini
 fi
+
+_commit
+
+cat <<EOF
+    VIRL Settings restored to default!
+    You will need to reboot your server now.
+
+        sudo reboot now
+
+    After reboot you will need to re-configure your server
+    as a new deployment.
+EOF
 }
 
 
@@ -321,14 +390,14 @@ until [ "$selection" = "0" ]; do
 	echo "***** Server Inspector ******"
 	echo "1 - VIRL Server Config Validation"
 	echo "2 - Openstack Services Check"
-	echo "3 - Restart Openstack Services"
-	echo "4 - Check Image Version Sync"
+	echo "3 - Openstack Agents Check"
+	echo "4 - Restart Openstack Services"
 	echo "5 - List Package Versions"
-	echo "6 - Check Running Openstack Agents"
+	echo "6 - Verify Image Version Sync"
 ##	echo "7 - "
-##	echo "8 - "
-	echo "9 - Set Static IP address"
-	echo "9.1 - Reset Default Settings"
+	echo "8 - Set Static IP Address"
+	echo "9 - Commit Network Changes"
+	echo "9.1 - Restore Default Settings"
 	echo "0 - Exit"
 	echo ""
 	echo -n "Enter selection: "
@@ -337,11 +406,12 @@ until [ "$selection" = "0" ]; do
 	case $selection in
 		1 ) _result ; press_enter ;;
 		2 ) _svc ; press_enter ;;
-		3 ) _opnstk-restrt ; press_enter ;;
-		4 ) _sltimgchk ; press_enter ;;
+		3 ) _opnstk-agnt ; press_enter ;;
+		4 ) _opnstk-restrt ; press_enter ;;
 		5 ) _verchk ; press_enter ;;
-		6 ) _opnstk-agnt ; press_enter ;;
-		9 ) _askstatic ; press_enter ;;
+		6 ) _sltimgchk ; press_enter ;;
+		8 ) _askstatic ; press_enter ;;
+		9 ) _commit ; press_enter ;;
 		9.1 ) _rstr-vini ; press_enter ;;
 		0 ) clear ; exit 0 ;;
 		* ) echo "Please select from the menu" ; press_enter ;;
