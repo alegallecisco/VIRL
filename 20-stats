@@ -7,6 +7,7 @@
 mgmt=$(ifquery --list | egrep -v lo | sort | head -1)
 imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
 cat <<EOF
+
 +****************  Welcome to VIRL Server!  ****************+
 |    To manage VIRL please use UWM web interface.           |
 |    Point your browser to the URL shown below using        |
@@ -16,9 +17,10 @@ cat <<EOF
 |    Password: password                                     |
 |                                                           |
 |    UWM URL:                                               |
-|    http://$imgmt:19400                                    |
+|    http://$imgmt:19400
 |                                                           |
 +****************  Welcome to VIRL Server!  ****************+
+
 EOF
 
 ifquery --list | egrep -v lo | sort | while read intf
