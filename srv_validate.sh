@@ -3,7 +3,7 @@
 ## place them into a single file (SrvValTest.txt). This file can be collected and
 ## forwarded to VIRL support community for assistance.
 ## Validation script created by alejandro gallego (alegalle@cisco.com)
-## Last modified on Dec 12, 2016
+## Last modified on Jan 05, 2017
 
 trap int_exit INT
 
@@ -41,7 +41,8 @@ ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
         printf "IP: $ipadr\n" >> $_out 2>&1
         fi
 done
-vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\binternalnet_' /etc/virl.ini)
+printf "%s\nBridge Info: \n $lbrdg%s\n" >> $_out 2>&1
+vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\bdummy_'\|'\bvirl_'\|'\binternalnet_' /etc/virl.ini)
 printf "%s\n>>> VIRL Config Summary <<<\n$vini" >> $_out 2>&1
 }
 
@@ -82,7 +83,7 @@ printf "%s\nResults printed to file \"$_out\" located in
 sleep 5
 }
 
-
+lbrdg=$(brctl show)
 _out=~/SrvValTest.txt
 _result
 _netint
