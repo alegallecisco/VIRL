@@ -1,9 +1,13 @@
 #!/bin/bash
+PROGNAME=$(basename $0)
+
 ## This script will collect key parts of your VIRL server configuration settings and
 ## place them into a single file (SrvValTest.txt). This file can be collected and
 ## forwarded to VIRL support community for assistance.
 ## Validation script created by alejandro gallego (alegalle@cisco.com)
 ## Last modified on Jan 05, 2017
+
+TEMP_FILE=/tmp/${PROGNAME}.$$.$RANDOM
 
 trap int_exit INT
 
@@ -15,7 +19,6 @@ function int_exit
 
 function _result
 {
-# _out=~/SrvValTest.txt
 printf "%s\nResults printed to file \"$_out\" in
     \"virl user's home directory\"%s\n"
 sleep 2
@@ -26,7 +29,6 @@ touch $_out
 
 function _netint
 {
-# _out=~/SrvValTest.txt
 ifquery --list | egrep -v lo | sort | while read intf
 do
 ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
@@ -42,17 +44,14 @@ ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
         fi
 done
 printf "%s\nBridge Info: \n $lbrdg%s\n" >> $_out 2>&1
-vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\bdummy_'\|'\bvirl_'\|'\binternalnet_' /etc/virl.ini)
+vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\bdummy_'\|'\bvirl_'\|'\binternalnet_'\|'_nameserver' /etc/virl.ini)
 printf "%s\n>>> VIRL Config Summary <<<\n$vini" >> $_out 2>&1
 }
 
 function _saltst
 {
-# _out=SrvValTest.txt
 printf "%s\nCheckin Salt Configuration...%s\n"
 sleep 1
-# rm ~/$_out >& /dev/null
-# touch ~/$_out
 mstr=$(sudo salt-call --local grains.get salt_master)
 lic=$(sudo salt-call --local grains.get id)
 printf "%s\nConfigured Salt masters:\n $mstr%s\n"

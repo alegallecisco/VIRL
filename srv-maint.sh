@@ -1,5 +1,5 @@
 #!/bin/bash
-
+PROGNAME=$(basename $0)
 ## This script is meant for simple information gathering
 ## of your VIRL server. It also will assist with configuring
 ## a static IP address. Using UWM for system configuration
@@ -7,7 +7,7 @@
 ## making system changes.
 ##
 ## Created by: alejandro gallego (alegalle@cisco.com)
-## Last Updated: Dec 22, 2016
+## Last Updated: Jan 09, 2016
 ##
 
 trap int_exit INT
@@ -23,21 +23,20 @@ function _cont
 	echo ""
 	echo -n "Continue? (y/n) "
 	read _resp
+	_resp
 }
 
 function _resp
 {
-	#echo ""
-	#echo -n "Continue? (y/n) "
-	#read _resp
-	_resp=r
-	until [ $_resp == "y" ]; do
-    		case $_resp in
-        	y ) _resp=y ;;
+	until [ "$_resp" = "y" ]; do
+    echo -n "Continue? (y/n) "
+    read _resp
+        case $_resp in
+            y ) _resp=y ;;
             n ) clear ; menu ;;
-            * ) printf "%s\nPlease enter a \"y\" or \"n\"%s\n" ; _cont ;;
-        	esac
-	done
+            * ) printf "%sPlease enter a \"y\" or \"n\"%s\n\n" ;;
+        esac
+    done
 }
 
 function press_enter
@@ -413,7 +412,7 @@ until [ "$selection" = "0" ]; do
 		8 ) _askstatic ; press_enter ;;
 		9 ) _commit ; press_enter ;;
 		9.1 ) _rstr-vini ; press_enter ;;
-		0 ) clear ; exit 0 ;;
+		0 ) _resp ; clear ;; # exit 0 ;;
 		* ) echo "Please select from the menu" ; press_enter ;;
 	esac
 done
