@@ -1,11 +1,11 @@
 #!/bin/bash
 ## Place this file in following location '/etc/update-motd.d/'
 ## and set permissions to 755.
-## Last modified: Jan 4, 2017
+## Last modified: Jan 11, 2017
 ## Created by: alejandro gallego (alegalle@cisco.com)
 # echo ""
-mgmt=$(ifquery --list | egrep -v lo | sort | head -1)
-imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+mgmt=$(ifquery --list | egrep -v lo | sort -r | head -1)
+imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' | head -1)
 cat <<EOF
 
 +****************  Welcome to VIRL Server!  ****************+
@@ -33,3 +33,4 @@ ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
         printf "%s    $intf: $ipadr\n"
         fi
 done
+echo ""
