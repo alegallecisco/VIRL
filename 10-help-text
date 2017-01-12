@@ -1,0 +1,5 @@
+
+printf "\n"
+printf " * Documentation:  https://learningnetwork.cisco.com/docs/DOC-30160\n"
+printf " * Guides:         https://learningnetwork.cisco.com/docs/DOC-30518\n"
+printf " * Support:        https://learningnetwork.cisco.com/groups/virl\n"
