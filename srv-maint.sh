@@ -7,7 +7,7 @@ PROGNAME=$(basename $0)
 ## making system changes.
 ##
 ## Created by: alejandro gallego (alegalle@cisco.com)
-## Last Updated: Jan 09, 2016
+## Last Updated: Jan 10, 2016
 ##
 
 trap int_exit INT
@@ -106,7 +106,7 @@ echo ""
 function _sltimgchk
 {
 rm ~/sltImgVer.txt >& /dev/null
-egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
+echo $mstr | while read srv
     do
     printf "%s\nRequesting image version from SALT Master: [$srv]%s\n"
     sudo salt-call -l debug --master $srv state.sls virl.routervms test=TRUE >& /tmp/img_$srv.txt
@@ -123,7 +123,6 @@ rm /tmp/img_*.txt
 
 function _result
 {
-# _out=~/SrvValTest.txt
 clear
 printf "%s\nResults printed to file \"$_out\" in
     \"virl user's home directory\"%s\n"
@@ -135,7 +134,6 @@ _netint
 
 function _netint
 {
-# _out=~/SrvValTest.txt
 ifquery --list | egrep -v lo | sort | while read intf
 do
 ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
@@ -157,18 +155,13 @@ _saltst
 
 function _saltst
 {
-# _out=SrvValTest.txt
 printf "%s\nCheckin Salt Configuration...%s\n"
 sleep 1
-# rm ~/$_out >& /dev/null
-# touch ~/$_out
-mstr=$(sudo salt-call --local grains.get salt_master)
-lic=$(sudo salt-call --local grains.get id)
 printf "%s\nConfigured Salt masters:\n $mstr%s\n"
 printf "%s\nConfigured Salt ID:\n $lic%s\n"
 printf "%s\n\nSalt Masters\n $mstr %s\n"  >> $_out 2>&1
 printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
-egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
+echo $mstr | while read srv
     do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
     if [ $? -ne 1 ] ; then
@@ -326,7 +319,6 @@ if [ $? -ne 1 ] ; then
     sudo touch /var/local/virl/rehost.log
     sudo mv /var/local/virl/rehost.log /var/local/virl/$tstmp-rehost.log
     sudo salt-call -l debug state.sls virl.vinstall
-##    sudo vinstall salt
     sudo vinstall rehost
     else
     menu
@@ -432,6 +424,8 @@ fi
 
 
 _out=~/SrvValTest.txt
+mstr=$(sudo salt-call --local grains.get salt_master | egrep -v local: )
+lic=$(sudo salt-call --local grains.get id)
 menu
 
 

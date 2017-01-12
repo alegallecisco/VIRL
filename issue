@@ -1,0 +1,14 @@
+Ubuntu 16.04.1 LTS \n \l
+
++****************  Welcome to VIRL Server!  ****************+
+|    To manage VIRL please use UWM web interface.           |
+|    Point your browser to the URL shown below using        |
+|    the following default credentials:                     |
+|                                                           |
+|    User Name: uwmadmin                                    |
+|    Password: password                                     |
+|                                                           |
+|    UWM URL:                                               |
+|    http://\4{eth0}
+|                                                           |
++****************  Welcome to VIRL Server!  ****************+

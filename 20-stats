@@ -17,7 +17,7 @@ cat <<EOF
 |    Password: password                                     |
 |                                                           |
 |    UWM URL:                                               |
-|    http://$imgmt:19400
+|    http://$imgmt
 |                                                           |
 +****************  Welcome to VIRL Server!  ****************+
 
