@@ -31,7 +31,7 @@ function _netint
 {
 ifquery --list | egrep -v lo | sort | while read intf
 do
-ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+ipadr=$(ip addr show dev $intf |awk '$1 == "inet" { sub("/..", "", $2); print $2}')
     printf "%s\n$intf CONNECTED\n"
     printf "%s\n$intf CONNECTED\n" >> $_out 2>&1
     sudo ethtool $intf | grep 'Link detected: yes' > /dev/null
@@ -56,8 +56,6 @@ printf "%s\nConfigured Salt masters:\n $mstr%s\n"
 printf "%s\nConfigured Salt ID:\n $lic%s\n"
 printf "%s\n\nSalt Masters\n $mstr %s\n"  >> $_out 2>&1
 printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
-#egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
-#echo $mstr | while read srv
 for srv in ${mstr//,/ }
     do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
