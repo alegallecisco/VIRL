@@ -1,12 +1,15 @@
 #!/bin/bash
-## Place this file in following location '/etc/update-motd.d/'
-## and set permissions to 755.
+## Place this file in following location '/etc/'
+## and set permissions to 755 (u+x).
+## Append /etc/rc.local with the following line:
+## /etc/banner.sh > /etc/issue
+##
 ## Last modified: Jan 13, 2017
 ## Created by: alejandro gallego (alegalle@cisco.com)
 # echo ""
-#mgmt=$(ifquery --list | egrep -v lo | sort -r | head -1)
+################################################################
+
 mgmt=$(awk '$2 == 00000000 { print $1 }' /proc/net/route)
-#imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' | head -1)
 maddr=$(ip addr show dev $mgmt | awk '$1 == "inet" { sub("/..", "", $2); print $2}')
 cat <<EOF
 
@@ -23,7 +26,13 @@ cat <<EOF
 |                                                           |
 +*******************  Cisco VIRL Server  *******************+
 EOF
+
+printf "\n"
+printf " * Documentation:  https://learningnetwork.cisco.com/docs/DOC-30160\n"
+printf " * Guides:         https://learningnetwork.cisco.com/docs/DOC-30518\n"
+printf " * Support:        https://learningnetwork.cisco.com/groups/virl\n"
 printf "\nVIRL Server Interfaces: \n"
+
 ifquery --list | egrep -v lo | sort | while read intf
 do
 ipadr=$(ip addr show dev $intf |awk '$1 == "inet" { sub("/..", "", $2); print $2}')

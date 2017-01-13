@@ -57,7 +57,8 @@ printf "%s\nConfigured Salt ID:\n $lic%s\n"
 printf "%s\n\nSalt Masters\n $mstr %s\n"  >> $_out 2>&1
 printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
 #egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
-echo $mstr | while read srv
+#echo $mstr | while read srv
+for srv in ${mstr//,/ }
     do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
     printf "%s\nTesting Connectivity to: [$srv $idig]%s"

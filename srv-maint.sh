@@ -161,7 +161,8 @@ printf "%s\nConfigured Salt masters:\n $mstr%s\n"
 printf "%s\nConfigured Salt ID:\n $lic%s\n"
 printf "%s\n\nSalt Masters\n $mstr %s\n"  >> $_out 2>&1
 printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
-echo $mstr | while read srv
+#echo $mstr | while read srv
+for srv in ${mstr//,/ }
     do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
     if [ $? -ne 1 ] ; then
