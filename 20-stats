@@ -4,8 +4,10 @@
 ## Last modified: Jan 11, 2017
 ## Created by: alejandro gallego (alegalle@cisco.com)
 # echo ""
-mgmt=$(ifquery --list | egrep -v lo | sort -r | head -1)
-imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' | head -1)
+#mgmt=$(ifquery --list | egrep -v lo | sort -r | head -1)
+mgmt=$(awk '$2 == 00000000 { print $1 }' /proc/net/route)
+#imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' | head -1)
+maddr=$(ip addr show dev $mgmt | awk '$1 == "inet" { sub("/..", "", $2); print $2}')
 cat <<EOF
 
 +****************  Welcome to VIRL Server!  ****************+
@@ -17,7 +19,7 @@ cat <<EOF
 |    Password: password                                     |
 |                                                           |
 |    UWM URL:                                               |
-|    http://$imgmt
+|    http://$maddr
 |                                                           |
 +****************  Welcome to VIRL Server!  ****************+
 
@@ -25,7 +27,7 @@ EOF
 
 ifquery --list | egrep -v lo | sort | while read intf
 do
-ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
+ipadr=$(ip addr show dev $intf |awk '$1 == "inet" { sub("/..", "", $2); print $2}')
     sudo ethtool $intf | grep 'Link detected: yes' > /dev/null
         if [ $? -ne 0 ] ; then
         printf ">>>>%sInterface $intf DOWN%s\n"
