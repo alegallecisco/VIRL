@@ -4,9 +4,9 @@
 ## Last modified: Jan 13, 2017
 ## Created by: alejandro gallego (alegalle@cisco.com)
 # echo ""
-#mgmt=$(ifquery --list | egrep -v lo | sort -r | head -1)
+######
+
 mgmt=$(awk '$2 == 00000000 { print $1 }' /proc/net/route)
-#imgmt=$(ifconfig $mgmt |egrep -o '([0-9]+\.){3}[0-9]+' | head -1)
 maddr=$(ip addr show dev $mgmt | awk '$1 == "inet" { sub("/..", "", $2); print $2}')
 cat <<EOF
 
