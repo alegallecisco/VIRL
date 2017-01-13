@@ -1,7 +1,7 @@
 #!/bin/bash
 ## Place this file in following location '/etc/update-motd.d/'
 ## and set permissions to 755.
-## Last modified: Jan 11, 2017
+## Last modified: Jan 13, 2017
 ## Created by: alejandro gallego (alegalle@cisco.com)
 # echo ""
 #mgmt=$(ifquery --list | egrep -v lo | sort -r | head -1)
