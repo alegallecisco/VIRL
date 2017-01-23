@@ -37,9 +37,9 @@ if [[ $? -ne 0 ]] ; then
 else
 printf "%s\nInstallation Type: \"OVA\"\n" >> $_out 2>&1
 fi
-printf "%sVIRL Version:$ver\n"
+printf "%sVIRL Version:$ver\n"  >> $_out 2>&1
 printf "%sOS Info:
-$lver\n"
+$lver\n"  >> $_out 2>&1
 }
 
 ## Network information checks for configured interfaces, compares assigned MAC addr. to HW Mac addr.
