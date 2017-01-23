@@ -109,7 +109,7 @@ ver=$(sudo salt-call --local grains.get virl_release | egrep -v 'local:')
 lver=$(lsb_release -a 2> /dev/null)
 lbrdg=$(brctl show)
 mstr=$(sudo salt-call --local grains.get salt_master | egrep -v 'local:' )
-lic=$(sudo salt-call --local grains.get id | egrep -v 'lcoal:' )
+lic=$(sudo salt-call --local grains.get id | egrep -v 'local:' )
 _out=~/SrvValTest.txt
 ###
 
