@@ -5,11 +5,10 @@ PROGNAME=$(basename $0)
 ## place them into a single file (SrvValTest.txt). This file can be collected and
 ## forwarded to VIRL support community for assistance.
 ## Validation script created by alejandro gallego (alegalle@cisco.com)
-## Last modified on Jan 24, 2017
+## Last modified on Jan 25, 2017
 
-TEMP_FILE=/tmp/${PROGNAME}.$$.$RANDOM
+## TEMP_FILE=/tmp/${PROGNAME}.$$.$RANDOM
 
-trap int_exit INT
 
 function int_exit
 {
@@ -33,25 +32,29 @@ lspci |grep ' peripheral: VMware' > /dev/null
 if [[ $? -ne 0 ]] ; then
     printf "%s\nInstallation Type: \"OTHER\"\n"
 else
-printf "%s\nInstallation Type: \"OVA\"\n"
+printf "%s\nInstallation Type: \"OVA\"\n\n"
 fi
 }
 
 ## Checking installed version of typical packages
 function _verchk
 {
-echo "
->>>Openstack / System Versions<<<
-"
-printf "%sVIRL Release:$ver\n"
-printf "%sOS Info:\n$lver\n"
-printf "%s\nNeutron: " && neutron --version
-printf "%sNova: " && nova --version
-printf "%sKeystone: " && keystone --version
-echo "
->>>>VIRL Versions<<<<"
-printf "%s\n$(sudo salt-minion --versions)\n"
-printf "%s\nUWM Client: " && sudo virl_uwm_client version
+printf "%6s>>>Openstack / System Versions<<<\n"
+printf "%sVIRL Release:$ver\n" && sudo pip list | grep VIRL
+printf "%s\nOS Info:\n$lver\n\n"
+printf "%6s>>>OpenStack Versions<<<\n"
+printf "%17sNeutron: %s" && neutron --version
+printf "%20sNova: %s" && nova --version
+printf "%16sKeystone: %s" && keystone --version
+printf "%6s>>>Python Modules<<<\n"
+declare iver=($(sudo pip list | egrep '\bautonetkit'\|'\bvirl-'))
+ echo "              AutoNetkit:  ${iver[1]}"
+ echo "        AutoNetkit Cisco:  ${iver[3]}"
+ echo "       Topology Vis Eng.:  ${iver[5]}"
+ echo "Live Net Collection Eng.:  ${iver[7]}"
+ echo ""
+printf "%6s>>>>Salt Version<<<<\n"
+printf "%s$(sudo salt-minion --versions)\n"
 echo ""
 }
 
@@ -120,6 +123,7 @@ _out=~/SrvValTest.txt
 
 rm $_out >& /dev/null
 touch $_out
+trap int_exit INT
 _result
 echo "Checking deployment type...."
 _dtype >> $_out 2>&1
