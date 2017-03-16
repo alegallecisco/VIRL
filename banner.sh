@@ -36,7 +36,7 @@ printf "\nVIRL Server Interfaces: \n"
 ifquery --list | egrep -v lo | sort | while read intf
 do
 ipadr=$(ip addr show dev $intf |awk '$1 == "inet" { sub("/..", "", $2); print $2}')
-    sudo ethtool $intf | grep 'Link detected: yes' > /dev/null
+   ip link show $intf > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
         printf ">>>>%sInterface $intf DOWN%s\n"
         else

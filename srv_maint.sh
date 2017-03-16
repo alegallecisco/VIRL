@@ -7,7 +7,7 @@ PROGNAME=$(basename $0)
 ## making system changes.
 ##
 ## Created by: alejandro gallego (alegalle@cisco.com)
-## Last Updated: Jan 10, 2016
+## Last Updated: Jan 23, 2016
 ##
 
 trap int_exit INT
@@ -34,7 +34,7 @@ function _resp
         case $_resp in
             y ) _resp=y ;;
             n ) clear ; menu ;;
-            * ) printf "%sPlease enter a \"y\" or \"n\"%s\n\n" ;;
+            * ) printf "Please enter a \"y\" or \"n\"%s\n\n" ;;
         esac
     done
 }
@@ -60,23 +60,34 @@ done
 
 function _opnstk-agnt
 {
-printf "%s\nNeutron Agent%s\n"
+printf "\nNeutron Agent%s\n"
 for n in agent-list net-list
 do
 	neutron $n
 done
 
-printf "%s\nKeystone Agents%s\n"
+printf "\nKeystone Agents%s\n"
 for s in endpoint-list service-list
 do
 	keystone $s
 done
 
-printf "%s\nNova Agents%s\n"
+printf "\nNova Agents%s\n"
 for n in endpoints service-list
 do
     nova $n
 done
+}
+
+function _opnstk-reset
+{
+	sudo vinstall vinstall
+    sudo salt-call saltutil.sync_all
+    sudo vinstall salt
+    sudo salt-call -l debug state.sls openstack
+    sudo salt-call -l debug state.sls openstack.setup
+    sudo salt-call -l debug state.sls openstack-restart
+	sudo salt-call -l debug state.sls virl.openrc
 }
 
 function _opnstk-restrt
@@ -86,94 +97,101 @@ function _opnstk-restrt
 
 function _verchk
 {
-echo ">>>Openstack Installed Versions<<<"
-printf "%s\nNova Common: $(dpkg-query -s nova-common | grep Version)\n%sNeutron Common: $(dpkg-query -s neutron-common | grep Version)\n\n"
-printf "%s\nNova Version: %s\n"
-nova --version
-printf "%s\nKeystone Version: %s\n"
-keystone-all --version
-echo ""
-echo ">>>>VIRL Versions<<<<"
-printf "%s\nMinion Ver: %s\n"
-sudo salt-minion --versions
-printf "%s\nUWM Client Ver: %s\n"
-sudo virl_uwm_client version
-printf "%s\nVIRL Release: %s\n"
-sudo salt-call --local grains.get virl_release
+printf "%6s>>> Openstack / System Versions <<<\n"
+printf "VIRL Release:$ver\n" && sudo pip list | grep VIRL
+printf "\nOS Info:\n%s\n\n" $lver
+printf "%6s>>> OpenStack Versions <<<\n"
+printf "%14sOpenstack: %s" && openstack --version 2> /dev/null
+printf "%17sNeutron: %s" && neutron --version
+printf "%20sNova: %s" && nova --version
+printf "%6s>>> Python Modules <<<\n"
+declare iver=($(sudo pip list | egrep '\bautonetkit'\|'\bvirl-'))
+ echo "              AutoNetkit:  ${iver[1]}"
+ echo "        AutoNetkit Cisco:  ${iver[3]}"
+ echo "       Topology Vis Eng.:  ${iver[5]}"
+ echo "Live Net Collection Eng.:  ${iver[7]}"
+ echo ""
+printf "%6s>>> >Salt Version <<<<\n"
+printf "%s$(sudo salt-minion --versions)\n"
 echo ""
 }
 
 function _sltimgchk
 {
 rm ~/sltImgVer.txt >& /dev/null
-echo $mstr | while read srv
+for srv in ${mstr//,/ }
     do
-    printf "%s\nRequesting image version from SALT Master: [$srv]%s\n"
+    printf "\nRequesting image version from SALT Master: [%s]\n" "$srv"
     sudo salt-call -l debug --master $srv state.sls virl.routervms test=TRUE >& /tmp/img_$srv.txt
     done
-egrep  -o -w '\bus-[1-4].virl.info'\|'\beu-[1-4].virl.info' /etc/virl.ini | while read srv
+for srv in ${mstr//,/ }
     do
-    printf "%s\nComparing versions available on SALT Master: [$srv]%s\n"
-    printf "%s\nSALT Master: $srv\n" >> ~/sltImgVer.txt 2>&1 && grep -e "m_name: " -e "property-release: " /tmp/img_$srv.txt >> ~/sltImgVer.txt 2>&1
+    printf "\nComparing versions available on SALT Master: [%s]\n" "$srv"
+    printf "\nSALT Master: $srv\n" >> ~/sltImgVer.txt 2>&1 && grep -e "m_name: " -e "property-release: " /tmp/img_$srv.txt >> ~/sltImgVer.txt 2>&1
     done
-    printf "%s\nResults have been written text file \"~/sltImgVer.txt\"
-    located in virl user home directory%s\n"
+    printf "\nResults have been written text file \"~/sltImgVer.txt\"
+    located in virl user home directory\n"
 rm /tmp/img_*.txt
+}
+
+function _messg
+{
+printf "\nResults printed to file \"%s\" in
+    \"virl user's home directory\"%s\n" "$_out"
+sleep 2
 }
 
 function _result
 {
-clear
-printf "%s\nResults printed to file \"$_out\" in
-    \"virl user's home directory\"%s\n"
-sleep 2
 rm $_out >& /dev/null
 touch $_out
-_netint
+echo "Checking server configuration!
+Please wait...."
 }
 
 function _netint
 {
+printf "\n%6s>>>  VIRL Server Networking <<<\n\n"
 ifquery --list | egrep -v lo | sort | while read intf
 do
-ipadr=$(ifconfig $intf |egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
-    printf "%s\n$intf CONNECTED\n"
-    printf "%s\n$intf CONNECTED\n" >> $_out 2>&1
-    sudo ethtool $intf | grep 'Link detected: yes' > /dev/null
+ipadr=$(ip addr show dev $intf 2> /dev/null | awk '$1 == "inet" { sub("/.*", "", $2); print $2 }' )
+mac=$(ip link show $intf 2> /dev/null | awk '/ether/ {print $2}' )
+hwmac=$(cat /sys/class/net/$intf/address 2> /dev/null )
+    printf "%s CONFIGURED\n" "$intf"
+	printf "MAC: %s\n" "$mac"
+	printf "HW:  %s\n" "$hwmac"
+    ip link show $intf > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
-        printf ">>>>%sInterface $intf DOWN%s\n"
-        printf ">>>>%sInterface $intf DOWN%s\n" >> $_out 2>&1
+        printf ">>> Interface %s DOWN\n" "$intf"
         else
-        printf "IP: $ipadr\n"
-        printf "IP: $ipadr\n" >> $_out 2>&1
+        printf "IP: %s\n" "$ipadr"
+        echo ""
         fi
 done
-vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\binternalnet_' /etc/virl.ini)
-printf "%s\n>>> VIRL Config Summary <<<\n$vini" >> $_out 2>&1
-_saltst
+
+printf "\nBridge Info: \n %s\n" "$lbrdg"
+vini=$(egrep '\bsalt_'\|'\bhost'\|'\bdomain'\|'\bpublic_'\|'\bStatic_'\|'\busing_'\|'\bl2_'\|'\bl3_'\|'\bdummy_'\|'\bvirl_'\|'\binternalnet_'\|'_nameserver' /etc/virl.ini)
+printf "\n%6s>>> VIRL Config Summary <<<\n$vini"
 }
 
 function _saltst
 {
-printf "%s\nCheckin Salt Configuration...%s\n"
+printf "\nCheckin Salt Configuration...\n"
 sleep 1
-printf "%s\nConfigured Salt masters:\n $mstr%s\n"
-printf "%s\nConfigured Salt ID:\n $lic%s\n"
-printf "%s\n\nSalt Masters\n $mstr %s\n"  >> $_out 2>&1
-printf "%s\nSalt ID\n $lic %s\n"  >> $_out 2>&1
-#echo $mstr | while read srv
+printf "\nConfigured Salt masters:\n %s\n" "$mstr"
+printf "\nConfigured Salt ID:\n%s\n" "$lic"
 for srv in ${mstr//,/ }
     do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
     if [ $? -ne 1 ] ; then
-    printf "%s\nTesting Connectivity to: [$srv $idig]%s"
-    printf "%s\n>>>> $srv :: $idig\n" >> $_out 2>&1 && nc -zv $srv 4505-4506 >> $_out 2>&1
+    printf "\nTesting Connectivity to: [%2s : %s]\n" "$srv" "$idig"
+    nc -zv $srv 4505-4506
     echo ""
-    printf "%s\nChecking License....%s"
-    printf "%s\nAuth test --> Salt Server [$srv]%s\n"
-    printf "%s\n>>>> $srv\n" >> $_out 2>&1 && sudo salt-call --master $srv -l debug test.ping >> $_out 2>&1
+    printf "\nChecking License....%s"
+    printf "\nAuth test --> Salt Server [%s]\n" "$srv"
+    sudo salt-call --master $srv -l debug test.ping
     else
-    printf "%s\nUnable to resolve $srv Please check your connection.%s\n"
+    printf "\nUnable to resolve %s Please check your connection.\n" "$srv"
     fi
     done
 
@@ -181,13 +199,10 @@ printf "%s\nChecking hostname and network interfaces: %s\n"
 sleep 2
     for h in /etc/hostname /etc/hosts /etc/network/interfaces
     do
-        printf "%s\n>>> $h <<<%s\n" >> $_out 2>&1
-        cat $h >> $_out
+        printf "\n>>> %s <<<\n" "$h"
+        cat $h
     done
 sleep 2
-printf "%s\nResults printed to file \"$_out\" located in
-\"virl user's home directory\" Path is \"/home/virl\"%s\n"
-sleep 5
 }
 
 ## .--------------------------------. ##
@@ -232,7 +247,7 @@ EOF
         y ) _setstatic ; break ;;
         n ) _askstatic ; break ;;
         x ) clear ; menu ;;
-        * ) printf "%s\nPlease enter a \"y\" \"n\" or \"x\"%s\n" ;;
+        * ) printf "\nPlease enter a \"y\" \"n\" or \"x\"\n" ;;
     esac
 done
 }
@@ -246,7 +261,7 @@ function _askdns
 function _setstatic
 {
     sudo cp /etc/virl.ini /etc/virl.ini.orig
-    printf "%s\nSetting network information, please wait...!%s\n"
+    printf "\nSetting network information, please wait...!\n"
         sudo crudini --set --existing /etc/virl.ini DEFAULT using_dhcp_on_the_public_port False
     if [[ ! -z  $ip ]]; then
         sudo crudini --set --existing /etc/virl.ini DEFAULT Static_IP $ip
@@ -383,28 +398,50 @@ until [ "$selection" = "0" ]; do
 	echo "1 - VIRL Server Config Validation"
 	echo "2 - Openstack Services Check"
 	echo "3 - Openstack Agents Check"
-	echo "4 - Restart Openstack Services"
-	echo "5 - List Package Versions"
-	echo "6 - Verify Image Version Sync"
-##	echo "7 - "
-	echo "8 - Set Static IP Address"
-	echo "9 - Commit Network Changes"
-	echo "9.1 - Restore Default Settings"
+	echo "4 - List Package Versions"
+	echo "5 - Server Maintenance"
 	echo "0 - Exit"
 	echo ""
 	echo -n "Enter selection: "
 	read selection
 	echo ""
 	case $selection in
-		1 ) _result ; press_enter ;;
+		1 ) _result ; _verchk >> $_out 2>&1 ; _netint >> $_out 2>&1 ; _saltst >> $_out 2>&1 ; _messg ; press_enter ;;
 		2 ) _svc ; press_enter ;;
 		3 ) _opnstk-agnt ; press_enter ;;
-		4 ) _opnstk-restrt ; press_enter ;;
-		5 ) _verchk ; press_enter ;;
-		6 ) _sltimgchk ; press_enter ;;
-		8 ) _askstatic ; press_enter ;;
-		9 ) _commit ; press_enter ;;
-		9.1 ) _rstr-vini ; press_enter ;;
+		4 ) _verchk ; press_enter ;;
+		5 ) clear ; maint ;;
+		0 ) _resp ; clear ;; # exit 0 ;;
+		* ) echo "Please select from the menu" ; press_enter ;;
+	esac
+done
+}
+
+function maint
+{
+selection=
+until [ "$selection" = "0" ]; do
+	echo ""
+	echo "***** Server Maintenance ******"
+	echo "1 - Restart Openstack Services"
+	echo "2 - Verify Image Version Sync"
+	echo "3 - Set Static IP Address"
+	echo "4 - Commit Network Changes"
+	echo "4.1 - Restore Default Settings"
+	echo "5 - Server Inspector"
+	echo "0 - Exit"
+	echo ""
+	echo -n "Enter selection: "
+	read selection
+	echo ""
+	case $selection in
+
+		1 ) _opnstk-restrt ; press_enter ;;
+		2 ) _sltimgchk ; press_enter ;;
+		3 ) _askstatic ; press_enter ;;
+		4 ) _commit ; press_enter ;;
+		4.1 ) _rstr-vini ; press_enter ;;
+		5 ) clear ; menu ;;
 		0 ) _resp ; clear ;; # exit 0 ;;
 		* ) echo "Please select from the menu" ; press_enter ;;
 	esac
@@ -427,6 +464,7 @@ fi
 _out=~/SrvValTest.txt
 mstr=$(sudo salt-call --local grains.get salt_master | egrep -v local: )
 lic=$(sudo salt-call --local grains.get id)
+lbrdg=$(brctl show)
 menu
 
 
