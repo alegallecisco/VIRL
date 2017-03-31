@@ -3,7 +3,7 @@
 ## place them into a single file (SrvValTest.txt). This file can be collected and
 ## forwarded to VIRL support community for assistance.
 ## Validation script created by alejandro gallego (alegalle@cisco.com)
-## Last modified on Mar 07, 2017
+## Last modified on Mar 31, 2017
 ##
 ## Current version supports Openstack Kilo, Mitaka
 ##
@@ -15,6 +15,12 @@ function int_exit
 {
 echo "${PROGNAME}: Aborted by user"
 exit
+}
+
+function term_exit
+{
+	echo "${PROGNAME}: Terminated"
+	exit
 }
 
 ## Results of commands in script are sent to text file. The text file
@@ -77,7 +83,7 @@ function _ostack
 printf "%6s>>> Openstack Info / Stats <<<<"
 printf "\n%5sVIRL Host \n%s" && openstack host show virl
 printf "\n%5sVIRL Images \n%s" && openstack image list
-printf "%23s\n%s\n" "OpenStack Neutron" "$ntrn"
+printf "%23s\n%s\n%s\n" "OpenStack Networking" "$ntrn" "$ntrnsub"
 printf "%20s\n%s\n" "OpenStack Nova" "$nva"
 printf "\n%5sVIRL Hypervisor \n%s" && openstack hypervisor stats show
 printf "\n%5sOpenStack Services \n%s" && openstack service list --long
@@ -88,7 +94,7 @@ function _kostack
 printf "%6s>>> Openstack Info / Stats <<<<"
 printf "\n%5sVIRL Host \n%s" && nova host-list
 printf "\n%5sVIRL Images \n%s" && nova image-list
-printf "%23s\n%s\n" "OpenStack Neutron" "$ntrn"
+printf "%23s\n%s\n%s\n" "OpenStack Networking" "$ntrn" "$ntrnsub"
 printf "%20s\n%s\n" "OpenStack Nova" "$nva"
 printf "\n%5sVIRL Hypervisor \n%s" && nova hypervisor-stats
 }
@@ -150,9 +156,12 @@ for srv in ${mstr//,/ }
 }
 
 PROGNAME=$(basename $0)
+trap term_exit TERM HUP
+trap int_exit INT
 
 ## Global vars
 ntrn=$(neutron agent-list)
+ntrnsub=$(neutron subnet-list)
 nva=$(nova service-list)
 ver=$(sudo salt-call --local grains.get virl_release | egrep -v 'local:')
 lver=$(lsb_release -a 2> /dev/null)
@@ -164,7 +173,6 @@ _out=~/SrvValTest.txt
 
 rm $_out >& /dev/null
 touch $_out
-trap int_exit INT
 _result
 echo "Checking deployment type...."
 _dtype >> $_out 2>&1
