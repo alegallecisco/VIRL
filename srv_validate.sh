@@ -37,9 +37,9 @@ function _dtype
 {
 lspci |grep ' peripheral: VMware' > /dev/null
 if [[ $? -ne 0 ]] ; then
-    printf "%s\nInstallation Type: \"OTHER\"\n"
+    printf "\nInstallation Type: \"OTHER\"\n"
 else
-printf "%s\nInstallation Type: \"OVA\"\n\n"
+printf "\nInstallation Type: \"OVA\"\n\n"
 fi
 }
 
@@ -61,7 +61,7 @@ declare iver=($(sudo pip list | egrep '\bautonetkit'\|'\bvirl-'))
     echo "       Topology Vis Eng.:  ${iver[5]}"
     echo "Live Net Collection Eng.:  ${iver[7]}"
     echo ""
-printf "%6s>>> >Salt Version <<<<\n"
+printf "%6s>>>> Salt Version <<<<\n"
 printf "%s$(sudo salt-minion --versions)\n"
 echo ""
 }
@@ -85,6 +85,7 @@ printf "\n%5sVIRL Host \n%s" && openstack host show virl
 printf "\n%5sVIRL Images \n%s" && openstack image list
 printf "%23s\n%s\n%s\n" "OpenStack Networking" "$ntrn" "$ntrnsub"
 printf "%20s\n%s\n" "OpenStack Nova" "$nva"
+printf "%20s\n%s\n" "OpenStack User(s)" "$kstn"
 printf "\n%5sVIRL Hypervisor \n%s" && openstack hypervisor stats show
 printf "\n%5sOpenStack Services \n%s" && openstack service list --long
 }
@@ -96,6 +97,7 @@ printf "\n%5sVIRL Host \n%s" && nova host-list
 printf "\n%5sVIRL Images \n%s" && nova image-list
 printf "%23s\n%s\n%s\n" "OpenStack Networking" "$ntrn" "$ntrnsub"
 printf "%20s\n%s\n" "OpenStack Nova" "$nva"
+printf "%20s\n%s\n" "OpenStack User(s)" "$kstn"
 printf "\n%5sVIRL Hypervisor \n%s" && nova hypervisor-stats
 }
 
@@ -163,6 +165,7 @@ trap int_exit INT
 ntrn=$(neutron agent-list)
 ntrnsub=$(neutron subnet-list)
 nva=$(nova service-list)
+kstn=$(keystone user-list | grep -v "WARNING" 2> /dev/null)
 ver=$(sudo salt-call --local grains.get virl_release | egrep -v 'local:')
 lver=$(lsb_release -a 2> /dev/null)
 lbrdg=$(brctl show)

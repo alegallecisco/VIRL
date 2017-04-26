@@ -38,9 +38,9 @@ do
 ipadr=$(ip addr show dev $intf |awk '$1 == "inet" { sub("/..", "", $2); print $2}')
    ip link show $intf > /dev/null 2>&1
         if [ $? -ne 0 ] ; then
-        printf ">>>>%sInterface $intf DOWN%s\n"
+        printf ">>>>Interface %s:  DOWN\n" $intf
         else
-        printf "%s    $intf: $ipadr\n"
+        printf "%s:%s\n" $intf $ipadr
         fi
 done
 echo ""
