@@ -54,12 +54,12 @@ virl-salt-master-3.cisco.com
 virl-salt-master-4.cisco.com" | while read srv
   do
     idig=$(dig $srv | egrep -o '([0-9]+\.){3}[0-9]+' |head -1)
-    printf "%s\nTesting Connectivity to: [$srv $idig]%s"
-    printf "%s\n>>>> $srv :: $idig\n" >> $_out 2>&1 && nc -zv $srv 4505-4506 >> $_out 2>&1
+    printf "\nTesting Connectivity to: [%s %s]" $srv $idig
+    printf "\n>>>> $srv :: $idig\n" >> $_out 2>&1 && nc -zv $srv 4505-4506 >> $_out 2>&1
     echo ""
-    printf "%s\nChecking License....%s"
-    printf "%s\nAuth test --> Salt Server [$srv]%s\n"
-    printf "%s\n>>>> $srv\n" >> $_out 2>&1 && sudo salt-call --master $srv -l debug test.ping >> $_out 2>&1
+    printf "\nChecking License...."
+    printf "\nAuth test --> Salt Server [%s]\n" $srv
+    printf "\n>>>> $srv\n" >> $_out 2>&1 && sudo salt-call --master $srv -l debug test.ping >> $_out 2>&1
     done
 
 printf "%s\nChecking hostname and network interfaces: %s\n"
