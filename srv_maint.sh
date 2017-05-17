@@ -7,10 +7,8 @@ PROGNAME=$(basename $0)
 ## making system changes.
 ##
 ## Created by: alejandro gallego (alegalle@cisco.com)
-## Last Updated: May 15, 2017
+## Last Updated: May 16, 2017
 ##
-
-trap int_exit INT
 
 function int_exit
 {
@@ -85,8 +83,10 @@ function _opnstk-reset
     sudo salt-call -l debug state.sls openstack.restart
     sudo salt-call -l debug state.sls virl.openrc
 
-    read -p "A reboot is recommended but not required.
-    nWould you like to reboot your server now? (y/n): " _resp
+    echo "
+    A reboot is recommended but not required.
+    Server is ready for reboot!"
+
     _resp
     sudo reboot now
 }
