@@ -25,8 +25,17 @@ function term_exit
 ## will be found under the default username 'virl' home directory.
 function _result
 {
-	printf "\nResults printed to a text file for easy sharing.\nPath of result file is \"%s\". \n\n" $_out
-	sleep 1
+    rm $_out >& /dev/null
+    touch $_out
+    echo "Checking server configuration!
+    Please wait...."
+}
+
+function _messg
+{
+    printf "\nResults printed to file \"%s\" in
+    \"virl user's home directory\"\n" "$_out"
+    sleep 2
 }
 
 ## Deployment type checks for VMware PCI devices
@@ -149,8 +158,8 @@ function _saltst
 		    printf "\nTesting Connectivity to: [%3s %s]\n" "$srv" "$idig"
 		    nc -zv $srv 4505-4506
 		    echo ""
-		    printf "\nChecking License...."
-		    printf "\nAuth test --> Salt Server [%s]\n" "$srv"
+		    printf "\nChecking License....[ %s ]\n" $lic
+		    printf "\nAuth test --> Salt Server [ %s ]\n" "$srv"
 		    sudo salt-call --master $srv -l debug test.ping
 	    done
 }
@@ -188,5 +197,5 @@ echo "Checking salt connectivity and license...."
 _saltst >> $_out 2>&1
 echo "
 DONE...."
-_result
+_messg
 # sleep 5

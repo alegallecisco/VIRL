@@ -9,6 +9,7 @@ PROGNAME=$(basename $0)
 ## Created by: alejandro gallego (alegalle@cisco.com)
 ## Last Updated: May 16, 2017
 ##
+## DEPRECATED DO NOT USE!!!
 
 function int_exit
 {
@@ -83,7 +84,10 @@ function _opnstk-reset
     sudo salt-call -l debug state.sls openstack.restart
     sudo salt-call -l debug state.sls virl.openrc
 
-    echo -en "\nA reboot is recommended but not required.\nServer is ready for reboot!"'\n'
+    echo "
+    A reboot is recommended but not required.
+    Server is ready for reboot!"
+
     _resp
     sudo reboot now
 }
@@ -245,7 +249,7 @@ function _saltst
 		    printf "\nTesting Connectivity to: [%3s %s]\n" "$srv" "$idig"
 		    nc -zv $srv 4505-4506
 		    echo ""
-		    printf "\nChecking License....[ %s ]\n" $lic
+		    printf "\nChecking License...."
 		    printf "\nAuth test --> Salt Server [%s]\n" "$srv"
 		    sudo salt-call --master $srv -l debug test.ping
 	    done
@@ -262,10 +266,10 @@ _adns=0
 while true; do
     cat <<EOF
 
-    ******************** WARNING *********************
+    ******************** CAUTION *********************
      There is no syntax validation here. Use extreme
      caution when entering network information.
-    ******************** WARNING *********************
+    ******************** CAUTION *********************
 
 EOF
     read -p "Enter static IP: " ip
@@ -311,36 +315,24 @@ function _setstatic
         sudo crudini --set --existing /etc/virl.ini DEFAULT using_dhcp_on_the_public_port False
     if [[ ! -z  $ip ]]; then
         sudo crudini --set --existing /etc/virl.ini DEFAULT Static_IP $ip
-        if [[ $? -eq 1 ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT Static_IP $ip
-        fi
         echo "Static IP set...    $ip"
         else
         echo "No Change... skipping!"
     fi
     if [[ ! -z $ntid ]]; then
         sudo crudini --set --existing /etc/virl.ini DEFAULT public_network $ntid
-        if [[ $? -eq 1 ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT public_network $ntid
-        fi
         echo "Network ID set...   $ntid"
         else
         echo "No Change... skipping!"
     fi
     if [[ ! -z $msk ]]; then
         sudo crudini --set --existing /etc/virl.ini DEFAULT public_netmask $msk
-        if [[ $? -eq 1 ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT public_netmask $msk
-        fi
         echo "Netmask set...      $msk"
         else
         echo "No Change... skipping!"
     fi
     if [[ ! -z $gw ]]; then
         sudo crudini --set --existing /etc/virl.ini DEFAULT public_gateway $gw
-        if [[ $? -eq 1 ]]; then
-        sudo crudini --set /etc/virl.ini DEFAULT public_gateway $gw
-        fi
         echo "Gateway set...      $gw"
         else
         echo "No Change... skipping!"
@@ -389,13 +381,14 @@ cat <<EOF
 EOF
 _resp
 if [ $? -ne 1 ] ; then
-    sudo touch ~/$tstmp-rehost.log
-    sudo salt-call -l debug state.sls virl.vinstall | tee -a ~/$tstmp-rehost.log
-    sudo vinstall rehost | tee -a ~/$tstmp-rehost.log
+    tstmp=$(date +%R_%m%d%Y)
+    sudo touch /var/local/virl/rehost.log
+    sudo mv /var/local/virl/rehost.log /var/local/virl/$tstmp-rehost.log
+    sudo salt-call -l debug state.sls virl.vinstall | tee -a /var/local/virl/$tstmp-rehost.log
+    sudo vinstall rehost | tee -a /var/local/virl/$tstmp-rehost.log
     else
     maint
 fi
-unset $?
 _resp
 sudo reboot now
 }
@@ -428,6 +421,7 @@ EOF
 _resp
 
     if [ $? -ne 1 ] ; then
+        tstmp=$(date +%R_%m%d%Y)
         sudo cp /etc/virl.ini /etc/$tstmp.virl.ini && cp /etc/orig.virl.ini /etc/virl.ini
     fi
 _commit
@@ -465,10 +459,11 @@ done
 
 	echo ""
 	echo "***** Server Inspector ******"
-	echo "1 - VIRL Config Validation"
-	echo "2 - Restart Openstack Services"
-	echo "3 - RESET Openstack"
-	echo "4 - Server Maintenance"
+	echo "1 - VIRL Server Config Validation"
+	echo "2 - Openstack Services Check"
+	echo "3 - Openstack Agents Check"
+	echo "4 - List Package Versions"
+	echo "5 - Server Maintenance"
 	echo "0 - Exit"
 	echo ""
 	echo -n "Enter selection: "
@@ -476,11 +471,12 @@ done
 	echo ""
 	case $selection in
 		1 ) _result ; _dtype >> $_out 2>&1 ; _verchk >> $_out 2>&1 ; _o ; _netint >> $_out 2>&1 ; _saltst >> $_out 2>&1 ; _messg ; press_enter ;;
-		2 ) _opnstk-restrt ; press_enter ;;
-		3 ) _opnstk-reset ; press_enter ;;
-		4 ) clear ; maint ;;
+		2 ) _svc ; press_enter ;;
+		3 ) _opnstk-agnt ; press_enter ;;
+		4 ) _verchk ; press_enter ;;
+		5 ) clear ; maint ;;
 		0 ) _resp ; clear ; exit 0 ;;
-		* ) echo "Please select option from menu!" ; press_enter ;;
+		* ) echo "Please select from the menu" ; press_enter ;;
 	esac
 done
 }
@@ -491,9 +487,11 @@ selection=
 until [ "$selection" = "0" ]; do
 	echo ""
 	echo "***** Server Maintenance ******"
-	echo "1 - Verify Image Version Sync"
-    echo "2 - Set Static IP Address"
-	echo "3 - Return to >> Server Inspector"
+	echo "1 - Restart Openstack Services"
+    echo "2 - RESET Openstack"
+	echo "3 - Verify Image Version Sync"
+	echo "4 - Set Static IP Address"
+	echo "5 - Server Inspector"
 	echo "0 - Exit"
 	echo ""
 	echo -n "Enter selection: "
@@ -501,9 +499,11 @@ until [ "$selection" = "0" ]; do
 	echo ""
 	case $selection in
 
-		1 ) _sltimgchk ; press_enter ;;
-		2 ) _askstatic ; _commit ; press_enter ;;
-		3 ) clear ; menu ;;
+		1 ) _opnstk-restrt ; press_enter ;;
+		2 ) _opnstk-reset ; press_enter ;;
+        3 ) _sltimgchk ; press_enter ;;
+		4 ) _askstatic ; _commit ; press_enter ;;
+		5 ) clear ; menu ;;
 		0 ) _resp ; clear ; exit 0 ;;
 		* ) echo "Please select from the menu" ; press_enter ;;
 	esac
@@ -530,7 +530,7 @@ exit 0
 fi
 
 ## Global vars
-tstmp=$(date +%R_%Y%m%d)
+tstmp=$(date +%H.%M_%Y.%m.%d)
 _ntp=$(ntpq -p)
 ntrn=$(neutron agent-list)
 ntrnsub=$(neutron subnet-list)
@@ -545,3 +545,6 @@ _out=~/SrvValTest.txt
 ###
 clear
 menu
+
+
+# awk '{match($0,/[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+/); ip = substr($0,RSTART,RLENGTH); print ip}'
