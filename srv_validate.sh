@@ -41,7 +41,7 @@ function _messg
 ## Deployment type checks for VMware PCI devices
 function _dtype
 {
-	$tstmp >> $_out 2>&1
+	echo $tstmp
 	lspci |grep ' peripheral: VMware' > /dev/null
 	if [[ $? -ne 0 ]] ; then
 		printf "\nInstallation Type: \"OTHER\"\n"
@@ -85,6 +85,7 @@ function _o
 }
 
 ## Display Openstack server information
+## Mitaka Openstack
 function _ostack
 {
 	printf "%6s>>> Openstack Info / Stats <<<<"
@@ -92,13 +93,15 @@ function _ostack
 	printf "\n%5sVIRL Images \n%s" && openstack image list
 	printf "%23s\n%s\n%s\n" "OpenStack Networking" "$ntrn" "$ntrnsub"
 	printf "%20s\n%s\n" "OpenStack Nova" "$nva"
-	printf "%20s\n%s\n" "OpenStack User(s)" "$kstn"
+	printf "%20s\n%s\n" "OpenStack User(s)" && openstack user list
 	printf "\n%5sVIRL Hypervisor \n%s" && openstack hypervisor stats show
 	printf "\n%5sOpenStack Services \n%s" && openstack service list --long
 }
 
+## Kilo Openstack
 function _kostack
 {
+kstn=$(keystone user-list | grep -v "WARNING" 2> /dev/null)
 	printf "%6s>>> Openstack Info / Stats <<<<"
 	printf "\n%5sVIRL Host \n%s" && nova host-list
 	printf "\n%5sVIRL Images \n%s" && nova image-list
@@ -174,7 +177,6 @@ _ntp=$(ntpq -p)
 ntrn=$(neutron agent-list)
 ntrnsub=$(neutron subnet-list)
 nva=$(nova service-list)
-kstn=$(keystone user-list | grep -v "WARNING" 2> /dev/null)
 ver=$(sudo salt-call --local grains.get virl_release | egrep -v 'local:')
 lver=$(lsb_release -a 2> /dev/null)
 lbrdg=$(brctl show)

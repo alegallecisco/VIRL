@@ -14,13 +14,18 @@
 if [[ $# -eq 0 ]]; then
     cat <<EOF
 
-    Usage: Specify 'new' to test new Salt servers, or
-    'v' to provide verbouse output.
-    EX: $0 new v
+    Usage:
+    $0 {v, new, old} [v]
+    Default will test "new" salt masters unless "old" is specified.
+    'v'    :provides verbouse output. May be used as single argument or appended
+    'old'  :tests salt servers in 'virl.info' domain
+    'new'  :tests salt servers in 'g1.virl.info' domain
+    EX: $0 old v
 
 EOF
 exit 1;
 fi
+
 lic=$(sudo salt-call --local grains.get id | egrep -v 'local:' )
 oslt=.virl.info
 nslt=-g1.virl.info

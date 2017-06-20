@@ -14,19 +14,19 @@ maddr=$(ip addr show dev $mgmt | awk '$1 == "inet" { sub("/..", "", $2); print $
 cat <<EOF
 
 +*******************  Cisco VIRL Server  *******************+
-|    To manage VIRL please use UWM web interface.           |
-|    Point your browser to the URL shown below using        |
-|    the following default credentials:                     |
-|                                                           |
-|    User Name: uwmadmin                                    |
-|    Password: password                                     |
-|                                                           |
-|    UWM URL:                                               |
-|    http://$maddr
-|                                                           |
+    To manage VIRL please use UWM web interface.
+    Point your browser to the URL shown below using
+    the following default credentials:
+
+    User Name: uwmadmin
+    Password: password
+
+    UWM URL:
+    http://$maddr
+
 +*******************  Cisco VIRL Server  *******************+
 EOF
-
+echo "Ubuntu 16.04.2 LTS \n \l"
 printf "\n"
 printf " * Documentation:  https://learningnetwork.cisco.com/docs/DOC-30160\n"
 printf " * Guides:         https://learningnetwork.cisco.com/docs/DOC-30518\n"
